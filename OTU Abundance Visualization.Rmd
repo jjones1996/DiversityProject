@@ -19,6 +19,7 @@ otus.t <- t(otus)
 #Rarefaction
 
 ```{r}
+library(vegan)
 richness <- rowSums((otus.t > 0) * 1)
 print(richness)
 minimum.r <- min(rowSums(otus.t))
