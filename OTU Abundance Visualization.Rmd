@@ -12,23 +12,41 @@ rm(list=ls())
 # Importing data into R
 
 ```{r}
-otus <- read.csv("alpine_ridge_data/OTU_table.csv", header = TRUE)
-otus.t <- t(otus)
+site_species <- read.csv("alpine_ridge_data/OTU_table.csv", header = TRUE)
+site_species.t <- t(site_species)
 ```
 
 #Rarefaction
 
 ```{r}
 library(vegan)
-richness <- rowSums((otus.t > 0) * 1)
+richness <- rowSums((site_species.t > 0) * 1)
 print(richness)
-minimum.r <- min(rowSums(otus.t))
-rarefy <- rarefy(x = otus.t, sample = minimum.r, se = TRUE)
+minimum.r <- min(rowSums(site_species.t))
+rarefy <- rarefy(x = site_species.t, sample = minimum.r, se = TRUE)
 
-rarecurve(x = otus.t, step = 20, col = "blue", cex = .6, las = 1)
+rarecurve(x = site_species.t, step = 20, col = "blue", cex = .6, las = 1)
 abline(0, 1, col = 'red')
 text(200, 100, "1:1", pos = 2, col = 'red')
 ```
+## Relative Abundance Visualization
+
+```{r}
+genus <- read.csv("alpine_ridge_data/genus_table.csv", header = TRUE)
+# Converting to Long Format
+library(reshape2)
+genus_long <- melt(genus, id.vars = "Genus", variable.name = "Sample")
+
+# Creating Graph of data
+library(ggplot2)
+genus_graph <- ggplot(data = genus_long, mapping = aes(x = Sample,  y = value, fill = Genus))
+genus_graph <- genus_graph + geom_bar(stat="identity")
+genus_graph <- genus_graph + labs(y = "Relative Abundance", x = "Sample", title = "Genus Relative Abundances") + theme_classic()
+genus_graph <- genus_graph + theme(legend.position = "None")
+genus_graph <- genus_graph + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+genus_graph
+```
+
 
 
 
