@@ -63,7 +63,8 @@ rarecurve(x = rarefied_site_species, step = 20, col = "blue", cex = .6, las = 1)
 abline(0, 1, col = 'red')
 text(200, 100, "1:1", pos = 2, col = 'red')
 ```
-# Calculating Beta-Diversity 
+
+# Calculating Bray-Curtis Beta-Diversity 
 
 ```{r}
 fungalBC <- vegdist(rarefied_site_species, method = "bray")
@@ -116,6 +117,59 @@ text(fungal.pcoa$points[,1], fungal.pcoa$points[,2],
 
 
 ```
+
+#Calculating Sorensen Beta-Diversity
+```{r}
+fungalBC <- vegdist(rarefied_site_species, method = "bray", binary = "TRUE")
+```
+
+
+# Cluster Analysis of Fungal Communities
+
+```{r} 
+#Performing Cluster Analysis
+fungal.ward <- hclust(fungalBC, method = "ward.D2")
+
+#Plotting Cluster
+par(mar = c(1,5,2,2) + .1)
+plot(fungal.ward, main = "Doubs River Fish: Ward's Clustering",
+     ylab = "Squared Sørensen's Distance")
+```
+
+# PCoA of Fungal Communities
+
+```{r}
+fungal.pcoa <- cmdscale(fungalBC, eig = TRUE, k = 3)
+
+explainvar1 <- round(fungal.pcoa$eig[1]/sum(fungal.pcoa$eig), 3) * 100
+explainvar2 <- round(fungal.pcoa$eig[2]/sum(fungal.pcoa$eig), 3) * 100
+explainvar3 <- round(fungal.pcoa$eig[3]/sum(fungal.pcoa$eig), 3) * 100
+sum.eig <- sum(explainvar1, explainvar2, explainvar3)
+
+#Define Plot Parameters
+par(mar = c(5,5,1,2), .1)
+
+#Initiate Plot
+plot(fungal.pcoa$points[,1], fungal.pcoa$points[,2], ylim = c(-.4, .5),
+     xlab = paste("PCoA 1 (", explainvar1, "%)", sep = ""),
+     ylab = paste("PCoA 2 (", explainvar2, "%)", sep = ""),
+     pch = 16, cex = 2.0, type = "n", cex.lab = 1.5, cex.axis = 1.2, axes = FALSE)
+
+#Add axis 
+axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+abline(h = 0, v = 0, lty = 3)
+box(lwd = 2)
+
+#Add Points & Labels
+points(fungal.pcoa$points[,1], fungal.pcoa$points[,2],
+       pch = 19, cex = 3, bg = "gray", col = "gray")
+text(fungal.pcoa$points[,1], fungal.pcoa$points[,2],
+     labels = row.names(fungal.pcoa$points))
+
+
+```
+
 ## Relative Abundance Visualization
 
 ```{r}
