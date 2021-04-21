@@ -2,14 +2,23 @@
 title: "Diversity Project Abundances"
 author: "Joshua"
 date: "4/1/2021"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r}
 rm(list=ls())
+package.list <- c('vegan', 'data.table', 'reshape2', 'ggplot2')
+for (package in package.list){
+  if (!require(package, character.only = TRUE, quietly = TRUE)) {
+    install.packages(package)
+    library(package,character.only = TRUE)
+  }
+}
 ```
 
-# Importing data into R
+# Importing site-species data into R
 
 ```{r}
 site_species <- read.csv("alpine_ridge_data/OTU_table.csv", header = TRUE)
@@ -20,7 +29,6 @@ site_species.t <- t(site_species)
 
 ```{r}
 #Visualization of rarecurves for all samples
-library(vegan)
 richness <- rowSums((site_species.t > 0) * 1)
 print(richness)
 minimum.r <- min(rowSums(site_species.t))
@@ -63,6 +71,22 @@ rarecurve(x = rarefied_site_species, step = 20, col = "blue", cex = .6, las = 1)
 abline(0, 1, col = 'red')
 text(200, 100, "1:1", pos = 2, col = 'red')
 ```
+
+
+#Removing samples to match environmental data downstream
+
+```{r}
+rarefied_site_species <- rarefied_site_species[-c(38,43,48),]
+```
+
+
+# Importing Environmental Data
+
+```{r}
+env <- read.csv("alpine_ridge_data/variables.txt", header = TRUE, sep = "\t")
+env <- env[-c(26,31),]
+```
+
 
 # Calculating Bray-Curtis Beta-Diversity 
 
@@ -118,9 +142,19 @@ text(fungal.pcoa$points[,1], fungal.pcoa$points[,2],
 
 ```
 
-#Calculating Sorensen Beta-Diversity
+# How much variance is explained by site location (Bray-Curtis)
+
 ```{r}
-fungalBC <- vegdist(rarefied_site_species, method = "bray", binary = "TRUE")
+site <- c(rep("S1", 5), rep("S2", 5), rep("S3", 5), rep("S4", 5), rep("S5", 5), rep("R1", 4), rep("R2", 4), rep("R3", 5), rep("R4", 5), rep("R5", 5))
+
+adonis(rarefied_site_species ~ env$V + site, permutations = 999)
+```
+
+
+# Calculating Sorensen Beta-Diversity
+
+```{r}
+fungalS <- vegdist(rarefied_site_species, method = "bray", binary = "TRUE")
 ```
 
 
@@ -128,29 +162,29 @@ fungalBC <- vegdist(rarefied_site_species, method = "bray", binary = "TRUE")
 
 ```{r} 
 #Performing Cluster Analysis
-fungal.ward <- hclust(fungalBC, method = "ward.D2")
+fungal.wardS <- hclust(fungalS, method = "ward.D2")
 
 #Plotting Cluster
 par(mar = c(1,5,2,2) + .1)
-plot(fungal.ward, main = "Doubs River Fish: Ward's Clustering",
+plot(fungal.wardS, main = "Doubs River Fish: Ward's Clustering",
      ylab = "Squared Sørensen's Distance")
 ```
 
 # PCoA of Fungal Communities
 
 ```{r}
-fungal.pcoa <- cmdscale(fungalBC, eig = TRUE, k = 3)
+fungal.S.pcoa <- cmdscale(fungalS, eig = TRUE, k = 3)
 
-explainvar1 <- round(fungal.pcoa$eig[1]/sum(fungal.pcoa$eig), 3) * 100
-explainvar2 <- round(fungal.pcoa$eig[2]/sum(fungal.pcoa$eig), 3) * 100
-explainvar3 <- round(fungal.pcoa$eig[3]/sum(fungal.pcoa$eig), 3) * 100
+explainvar1 <- round(fungal.S.pcoa$eig[1]/sum(fungal.pcoa$eig), 3) * 100
+explainvar2 <- round(fungal.S.pcoa$eig[2]/sum(fungal.pcoa$eig), 3) * 100
+explainvar3 <- round(fungal.S.pcoa$eig[3]/sum(fungal.pcoa$eig), 3) * 100
 sum.eig <- sum(explainvar1, explainvar2, explainvar3)
 
 #Define Plot Parameters
 par(mar = c(5,5,1,2), .1)
 
 #Initiate Plot
-plot(fungal.pcoa$points[,1], fungal.pcoa$points[,2], ylim = c(-.4, .5),
+plot(fungal.S.pcoa$points[,1], fungal.S.pcoa$points[,2], ylim = c(-.4, .5),
      xlab = paste("PCoA 1 (", explainvar1, "%)", sep = ""),
      ylab = paste("PCoA 2 (", explainvar2, "%)", sep = ""),
      pch = 16, cex = 2.0, type = "n", cex.lab = 1.5, cex.axis = 1.2, axes = FALSE)
@@ -162,30 +196,35 @@ abline(h = 0, v = 0, lty = 3)
 box(lwd = 2)
 
 #Add Points & Labels
-points(fungal.pcoa$points[,1], fungal.pcoa$points[,2],
+points(fungal.S.pcoa$points[,1], fungal.S.pcoa$points[,2],
        pch = 19, cex = 3, bg = "gray", col = "gray")
-text(fungal.pcoa$points[,1], fungal.pcoa$points[,2],
-     labels = row.names(fungal.pcoa$points))
-
-
+text(fungal.S.pcoa$points[,1], fungal.S.pcoa$points[,2],
+     labels = row.names(fungal.S.pcoa$points))
 ```
+
+
+# How much variance is explained by site location (Sorensen)
+
+```{r}
+site <- c(rep("S1", 5), rep("S2", 5), rep("S3", 5), rep("S4", 5), rep("S5", 5), rep("R1", 4), rep("R2", 4), rep("R3", 5), rep("R4", 5), rep("R5", 5))
+
+adonis(rarefied_site_species ~ env$V + site, binary = TRUE, permutations = 999)
+```
+
 
 ## Relative Abundance Visualization
 
 ```{r}
 genus <- read.csv("alpine_ridge_data/genus_table.csv", header = TRUE)
 #convert rownames into column
-library(data.table)
 
 genus.1 <- as.data.frame(t(rarefied_site_species))
 setDT(genus.1, keep.rownames = TRUE)[]
 
 # Converting to Long Format
-library(reshape2)
 genus_long <- melt(genus.1, id.vars = "rn", variable.name = "Sample")
 
 # Creating Graph of data
-library(ggplot2)
 genus_graph <- ggplot(data = genus_long, mapping = aes(x = Sample,  y = value, fill = rn))
 genus_graph <- genus_graph + geom_bar(stat="identity")
 genus_graph <- genus_graph + labs(y = "Relative Abundance", x = "Sample", title = "Genus Relative Abundances") + theme_classic()
@@ -193,6 +232,83 @@ genus_graph <- genus_graph + theme(legend.position = "None")
 genus_graph <- genus_graph + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 genus_graph
 ```
+
+
+# Importing environmental data and testing for significance 
+
+```{r}
+env <- read.csv("alpine_ridge_data/variables.txt", header = TRUE, sep = "\t")
+env <- env[-c(26,31),]
+
+site <- c(rep("S1", 5), rep("S2", 5), rep("S3", 5), rep("S4", 5), rep("S5", 5), rep("R1", 4), rep("R2", 4), rep("R3", 5), rep("R4", 5), rep("R5", 5))
+adonis(rarefied_site_species ~ env$V + env$P + env$N + env$C + site, method = "bray", permutations = 999)
+```
+
+
+# Constructing Constrained Ordination
+
+```{r}
+env.chem <- as.matrix(env[,c(2:4)])
+
+
+S.dbrda <- dbrda(fungalS ~ ., as.data.frame(env.chem))
+#ordiplot(S.dbrda)
+
+S.dbrda0 <- dbrda(fungalS ~ 1, as.data.frame(env.chem))
+S.dbrda1 <- dbrda(fungalS ~ ., as.data.frame(env.chem))
+
+S.dbrda <- ordiR2step(S.dbrda0, S.dbrda1, perm.max = 999)
+
+permutest(S.dbrda, permutations = 999)
+envfit(S.dbrda, env.chem, permutations = 999)
+
+#Calculating explained variation on axes
+S.explainvar1 <- round(S.dbrda$CCA$eig[1]/
+                             sum(c(S.dbrda$CCA$eig, S.dbrda$CA$eig)),
+                           3 ) * 100
+S.explainvar2 <- round(S.dbrda$CCA$eig[2]/
+                             sum(c(S.dbrda$CCA$eig, S.dbrda$CA$eig)),
+                           3 ) * 100
+
+#Plotting constrained ordination results
+par(mar = c(5,5,4,4) + .1)
+
+plot(scores(S.dbrda, display = "wa"), xlim = c(-2, 2.1), ylim = c(-2.3, 2.0), 
+     xlab = paste("dbRDA 1 (", S.explainvar1, "%)", sep = ""),
+     ylab = paste("dbRDA 2 (", S.explainvar2, "%)", sep = ""),
+     pch = 16, cex = 2.0, type = "n", cex.lab = 1.5, cex.axis = 1.2, axes = FALSE
+     )
+
+axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+abline(h = 0, v = 0, lty = 3)
+box(lwd = 2)
+
+points(scores(S.dbrda, display = "wa"),
+       pch = 19, cex = 3, bg = "gray", col = "gray")
+text(scores(S.dbrda, display = "wa"),
+     labels = row.names(scores(S.dbrda, display = "wa")))
+
+#Plotting vectors for enfluence of environmental factors
+vectors <- scores(S.dbrda, display = "bp")
+arrows(0, 0, vectors[,1], vectors[,2],
+       lwd = 2, lty = 1, length = .2, col = "red")
+text(vectors[,1], vectors[,2], pos = 3, 
+     labels = row.names(vectors), col = "red")
+axis(side = 3, lwd.ticks = 2, cex.axis = 1.2, las = 1, col = "red", lwd = 2.2,
+     at = pretty(range(vectors[,1])) * 2, labels = pretty(range(vectors[,1])))
+axis(side = 4, lwd.ticks = 2, cex.axis = 1.2, las = 1, col = "red", lwd = 2.2,
+     at = pretty(range(vectors[,2])) * 2, labels = pretty(range(vectors[,2])))
+```
+
+
+
+
+
+
+
+
+
 
 
 
