@@ -252,7 +252,7 @@ env.chem <- as.matrix(env[,c(2:4)])
 
 
 S.dbrda <- dbrda(fungalS ~ ., as.data.frame(env.chem))
-#ordiplot(S.dbrda)
+ordiplot(S.dbrda)
 
 S.dbrda0 <- dbrda(fungalS ~ 1, as.data.frame(env.chem))
 S.dbrda1 <- dbrda(fungalS ~ ., as.data.frame(env.chem))
@@ -289,7 +289,7 @@ points(scores(S.dbrda, display = "wa"),
 text(scores(S.dbrda, display = "wa"),
      labels = row.names(scores(S.dbrda, display = "wa")))
 
-#Plotting vectors for enfluence of environmental factors
+#Plotting vectors for influence of environmental factors
 vectors <- scores(S.dbrda, display = "bp")
 arrows(0, 0, vectors[,1], vectors[,2],
        lwd = 2, lty = 1, length = .2, col = "red")
