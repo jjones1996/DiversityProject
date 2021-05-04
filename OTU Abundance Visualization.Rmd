@@ -9,7 +9,7 @@ output:
 
 ```{r}
 rm(list=ls())
-package.list <- c('vegan', 'data.table', 'reshape2', 'ggplot2')
+package.list <- c('vegan', 'data.table', 'reshape2', 'ggplot2', 'ape')
 for (package in package.list){
   if (!require(package, character.only = TRUE, quietly = TRUE)) {
     install.packages(package)
@@ -118,28 +118,31 @@ explainvar2 <- round(fungal.pcoa$eig[2]/sum(fungal.pcoa$eig), 3) * 100
 explainvar3 <- round(fungal.pcoa$eig[3]/sum(fungal.pcoa$eig), 3) * 100
 sum.eig <- sum(explainvar1, explainvar2, explainvar3)
 
-#Define Plot Parameters
-par(mar = c(5,5,1,2), .1)
+test <- rarefied_site_species
 
-#Initiate Plot
-plot(fungal.pcoa$points[,1], fungal.pcoa$points[,2], ylim = c(-.4, .5),
-     xlab = paste("PCoA 1 (", explainvar1, "%)", sep = ""),
-     ylab = paste("PCoA 2 (", explainvar2, "%)", sep = ""),
-     pch = 16, cex = 2.0, type = "n", cex.lab = 1.5, cex.axis = 1.2, axes = FALSE)
+test$Site <- c(rep("S1", 5), rep("S2", 5), rep("S3", 5), rep("S4", 5), rep("S5", 5), rep("R1", 4), rep("R2", 4), rep("R3", 5), rep("R4", 5), rep("R5", 5))
 
-#Add axis 
-axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
-axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
-abline(h = 0, v = 0, lty = 3)
-box(lwd = 2)
+test$Location <- c(rep("Snowbed", 25), rep("Ridge", 23))
 
-#Add Points & Labels
-points(fungal.pcoa$points[,1], fungal.pcoa$points[,2],
-       pch = 19, cex = 3, bg = "gray", col = "gray")
-text(fungal.pcoa$points[,1], fungal.pcoa$points[,2],
-     labels = row.names(fungal.pcoa$points))
+## Plotting
+# make a fake pcoa
+dist      <- vegdist(test[,1:807],  method = "bray")
+fake_pcoa <- pcoa(dist)
+#summary(fake_pcoa) 
 
+# get the out of pcoa 
+# site scores = samples 
+sitescores   <- fake_pcoa$vectors #we need only the first two axis 
+newdata <- as.data.frame(cbind(sitescores[,1:2], Location = test$Location, Site = test$Site))
 
+#one way 
+bray <- ggplot(newdata, aes(y = as.numeric(Axis.1), x = as.numeric(Axis.2), shape = Location, color = Site))
+bray <- bray + geom_hline(yintercept = 0, color = "grey", linetype = "dashed")
+bray <- bray + geom_vline(xintercept = 0, color = "grey", linetype = "dashed")
+bray <- bray + geom_point(size = 3, alpha = .5)
+bray <- bray + theme_bw()
+bray <- bray + labs(y = paste("PCoA 1 (", explainvar1, "%)", sep = ""), x = paste("PCoA 2 (", explainvar2, "%)", sep = ""))
+bray
 ```
 
 # How much variance is explained by site location (Bray-Curtis)
@@ -180,26 +183,25 @@ explainvar2 <- round(fungal.S.pcoa$eig[2]/sum(fungal.pcoa$eig), 3) * 100
 explainvar3 <- round(fungal.S.pcoa$eig[3]/sum(fungal.pcoa$eig), 3) * 100
 sum.eig <- sum(explainvar1, explainvar2, explainvar3)
 
-#Define Plot Parameters
-par(mar = c(5,5,1,2), .1)
+## Plotting
+# make a fake pcoa
+dist      <- vegdist(test[,1:807],  method = "bray", binary = TRUE)
+fake_pcoa <- pcoa(dist)
+#summary(fake_pcoa) 
 
-#Initiate Plot
-plot(fungal.S.pcoa$points[,1], fungal.S.pcoa$points[,2], ylim = c(-.4, .5),
-     xlab = paste("PCoA 1 (", explainvar1, "%)", sep = ""),
-     ylab = paste("PCoA 2 (", explainvar2, "%)", sep = ""),
-     pch = 16, cex = 2.0, type = "n", cex.lab = 1.5, cex.axis = 1.2, axes = FALSE)
+# get the out of pcoa 
+# site scores = samples 
+sitescores   <- fake_pcoa$vectors #we need only the first two axis 
+newdata <- as.data.frame(cbind(sitescores[,1:2], Location = test$Location, Site = test$Site))
 
-#Add axis 
-axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
-axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
-abline(h = 0, v = 0, lty = 3)
-box(lwd = 2)
-
-#Add Points & Labels
-points(fungal.S.pcoa$points[,1], fungal.S.pcoa$points[,2],
-       pch = 19, cex = 3, bg = "gray", col = "gray")
-text(fungal.S.pcoa$points[,1], fungal.S.pcoa$points[,2],
-     labels = row.names(fungal.S.pcoa$points))
+#one way 
+soren <- ggplot(newdata, aes(y = as.numeric(Axis.1), x = as.numeric(Axis.2), shape = Location, color = Site))
+soren <- soren + geom_hline(yintercept = 0, color = "grey", linetype = "dashed")
+soren <- soren + geom_vline(xintercept = 0, color = "grey", linetype = "dashed")
+soren <- soren + geom_point(size = 3, alpha = .5)
+soren <- soren + theme_bw()
+soren <- soren + labs(y = paste("PCoA 1 (", explainvar1, "%)", sep = ""), x = paste("PCoA 2 (", explainvar2, "%)", sep = ""))
+soren
 ```
 
 
@@ -302,7 +304,52 @@ axis(side = 4, lwd.ticks = 2, cex.axis = 1.2, las = 1, col = "red", lwd = 2.2,
 ```
 
 
+```{r}
+env.chem <- as.matrix(env[,c(2:4)])
 
+fungalS <- fungalBC
+
+S.dbrda <- dbrda(fungalS ~ ., as.data.frame(env.chem))
+ordiplot(S.dbrda)
+
+S.dbrda0 <- dbrda(fungalS ~ 1, as.data.frame(env.chem))
+S.dbrda1 <- dbrda(fungalS ~ ., as.data.frame(env.chem))
+
+S.dbrda <- ordiR2step(S.dbrda0, S.dbrda1, perm.max = 999)
+```
+Sorensen distance is influenced by Nitrogen concentration in the soil but BC is not influenced by Nitrogren, Carbon, or Phosphorus 
+
+
+# Effect of plant abundance and diversity on fungal community structure
+
+```{r}
+# Making new dataframe with summary of all statistics
+plot.info <- as.data.frame(matrix(nrow = 10, ncol=1))
+plot.info <- plot.info[,-1]
+plot.info$Location <- c(rep("Ridge", 5), rep("Snowbed", 5))
+rownames(plot.info) <- c("S1","S2","S3","S4","S5","R1","R2","R3","R4","R5")
+plot.info$site <- c("S1","S2","S3","S4","S5","R1","R2","R3","R4","R5")
+
+# Adding average soil nutrients
+plot.info$P <- c(mean(env[1:5, 2]), mean(env[6:10, 2]), mean(env[11:15, 2]), mean(env[16:20, 2]), mean(env[21:25, 2]), mean(env[26:29, 2]),mean(env[30:33, 2]), mean(env[34:38, 2]), mean(env[39:43, 2]), mean(env[44:48, 2]))
+plot.info$N <- c(mean(env[1:5, 3]), mean(env[6:10, 3]), mean(env[11:15, 3]), mean(env[16:20, 3]), mean(env[21:25, 3]), mean(env[26:29, 3]),mean(env[30:33, 3]), mean(env[34:38, 3]), mean(env[39:43, 3]), mean(env[44:48, 3]))
+plot.info$C <- c(mean(env[1:5, 4]), mean(env[6:10, 4]), mean(env[11:15, 4]), mean(env[16:20, 4]), mean(env[21:25, 4]), mean(env[26:29, 4]),mean(env[30:33, 4]), mean(env[34:38, 4]), mean(env[39:43, 4]), mean(env[44:48, 4]))
+
+# Adding alpha diversity data
+rarefied.sites <- as.data.frame((matrix(nrow = 10, ncol = 807)))
+for (i in 1:(ncol(rarefied_site_species))){
+  rarefied.sites[,i] <- c(sum(rarefied_site_species[1:5, i]), sum(rarefied_site_species[6:10, i]), sum(rarefied_site_species[11:15, i]), sum(rarefied_site_species[16:20, i]), sum(rarefied_site_species[21:25, i]), sum(rarefied_site_species[26:29, i]),sum(rarefied_site_species[30:33, i]), sum(rarefied_site_species[34:38, i]), sum(rarefied_site_species[39:43, i]), sum(rarefied_site_species[44:48, i]))
+}
+
+# Species richness
+plot.info$richness <- rowSums((rarefied.sites > 0) * 1)
+
+
+plot.info <- as.data.frame(plot.info)
+anv <- anova(plot.info, richess ~ location)
+print(anv)
+summary(anv)
+```
 
 
 
